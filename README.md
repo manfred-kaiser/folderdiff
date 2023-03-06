@@ -15,7 +15,7 @@ usage: folderdiff [-h] [--prefix PREFIX] FILES FILES
 folder compare tool
 
 positional arguments:
-  FILES            directory to create sha256 sums
+  FILES            directory or archive to compare
 
 options:
   -h, --help       show this help message and exit
