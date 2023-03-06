@@ -19,6 +19,8 @@ setup(
     description=(
         'FolderDiff is a tool to compare unzipped archives (e.g. Wordpress installations) with their original zip archive or a clean source folder.'
     ),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     keywords="folder compare diff",
     packages=find_packages(),
     url="https://github.com/ssh-mitm/folderdiff",
