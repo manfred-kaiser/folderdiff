@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 [project.urls]
-Changelog = "https://github.com/ssh-mitm/folderdiff/blob/master/CHANGELOG.md"
+Changelog = "https://github.com/ssh-mitm/folderdiff/blob/main/CHANGELOG.md"
 Source = "https://github.com/ssh-mitm/folderdiff"
 Tracker = "https://github.com/ssh-mitm/folderdiff/issues"
 
@@ -87,3 +87,22 @@ ignore = [
 
 [tool.black]
 target-version = ["py311"]
+
+[tool.bumpversion]
+current_version = "0.0.2"
+
+[[tool.bumpversion.files]]
+filename = "folderdiff/__version__.py"
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = "[Unreleased]: https://github.com/ssh-mitm/folderdiff/compare/{current_version}...main"
+replace = """[Unreleased]: https://github.com/ssh-mitm/folderdiff/compare/{new_version}...main
+[{new_version}]: https://github.com/ssh-mitm/folderdiff/compare/{current_version}...{new_version}"""
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = "## [Unreleased]"
+replace = """## [Unreleased]
+
+## [{new_version}] - {now:%Y-%m-%d}"""
