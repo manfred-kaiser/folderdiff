@@ -39,3 +39,50 @@ path = "folderdiff/__version__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["folderdiff"]
+
+[tool.hatch.envs.lint]
+detached = false
+dependencies = [
+    "bandit",
+    "black~=26.0",
+    "Flake8-pyproject",
+    "flake8",
+    "mypy",
+    "pylint",
+    "ruff",
+]
+
+[tool.hatch.envs.lint.scripts]
+check = [
+    "black --check folderdiff",
+    "bandit -r folderdiff",
+    "ruff check folderdiff",
+    "flake8 folderdiff",
+    "pylint folderdiff",
+    "mypy folderdiff",
+]
+
+[[tool.hatch.envs.lint.matrix]]
+python = ["3.11", "3.12", "3.13"]
+
+[tool.flake8]
+ignore = ["E203", "E501", "W503"]
+
+[tool.mypy]
+strict = true
+install_types = true
+non_interactive = true
+
+[tool.pylint.MASTER]
+load-plugins = "pylint.extensions.docparams"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D203",    # one-blank-line-before-class
+    "D213",    # multi-line-summary-second-line
+    "E501",    # Line too long
+]
+
+[tool.black]
+target-version = ["py311"]
