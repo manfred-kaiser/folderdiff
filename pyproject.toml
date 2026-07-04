@@ -62,9 +62,6 @@ check = [
     "mypy folderdiff",
 ]
 
-[[tool.hatch.envs.lint.matrix]]
-python = ["3.11", "3.12", "3.13"]
-
 [tool.flake8]
 ignore = ["E203", "E501", "W503"]
 
@@ -82,6 +79,7 @@ ignore = [
     "D203",    # one-blank-line-before-class
     "D213",    # multi-line-summary-second-line
     "E501",    # Line too long
+    "T201",    # `print` used - this is a CLI tool that prints its result to stdout
 ]
 
 [tool.black]

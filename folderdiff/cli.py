@@ -1,22 +1,24 @@
-# -*- coding: utf-8 -*-
+"""Command line interface for folderdiff."""
 
 import argparse
 import sys
+
 from folderdiff import FileCompare
 
 
-def main():
-    parser = argparse.ArgumentParser(description='folder compare tool')
+def main() -> None:
+    """Run the folderdiff command line tool."""
+    parser = argparse.ArgumentParser(description="folder compare tool")
     parser.add_argument(
-        'directories',
-        metavar='FILES',
+        "directories",
+        metavar="FILES",
         nargs=2,
-        help='directory to create sha256 sums'
+        help="directory to create sha256 sums",
     )
     parser.add_argument(
-        '--prefix',
+        "--prefix",
         dest="prefix",
-        help="remove the profix from the source or destination folder"
+        help="remove the profix from the source or destination folder",
     )
 
     args = parser.parse_args()
