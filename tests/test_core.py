@@ -42,6 +42,55 @@ def test_get_hashlist_raises_for_unsupported_path(tmp_path: Path) -> None:
         FileCompare(str(missing)).get_hashlist()
 
 
+def test_get_hashlist_folder_strips_prefix(tmp_path: Path) -> None:
+    write(tmp_path / "wordpress" / "index.php", "index")
+    write(tmp_path / "wordpress" / "sub" / "b.txt", "world")
+
+    hashlist = FileCompare(str(tmp_path), prefix="wordpress/").get_hashlist()
+
+    names = {entry[0] for entry in hashlist}
+    assert names == {"index.php", str(Path("sub") / "b.txt")}
+
+
+def test_get_hashlist_folder_prefix_is_noop_when_not_nested(tmp_path: Path) -> None:
+    write(tmp_path / "index.php", "index")
+
+    hashlist = FileCompare(str(tmp_path), prefix="wordpress/").get_hashlist()
+
+    assert {entry[0] for entry in hashlist} == {"index.php"}
+
+
+def test_get_hashlist_folder_skips_broken_symlink_with_warning(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    write(tmp_path / "a.txt", "hello")
+    (tmp_path / "broken_link.txt").symlink_to(tmp_path / "does-not-exist")
+
+    hashlist = FileCompare(str(tmp_path)).get_hashlist()
+
+    assert {entry[0] for entry in hashlist} == {"a.txt"}
+    assert "broken_link.txt" in capsys.readouterr().err
+
+
+def test_get_hashlist_folder_skips_unreadable_file_with_warning(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    write(tmp_path / "a.txt", "hello")
+    locked = tmp_path / "locked.txt"
+    write(locked, "secret")
+    locked.chmod(0o000)
+
+    try:
+        hashlist = FileCompare(str(tmp_path)).get_hashlist()
+    finally:
+        locked.chmod(0o700)
+
+    assert {entry[0] for entry in hashlist} == {"a.txt"}
+    assert "locked.txt" in capsys.readouterr().err
+
+
 # ---------------------------------------------------------------------------
 # FileCompare.get_hashlist - zip archives
 # ---------------------------------------------------------------------------
@@ -68,6 +117,22 @@ def test_get_hashlist_zipfile_ignores_directory_entries(tmp_path: Path) -> None:
 
     hashlist = FileCompare(str(zip_path)).get_hashlist()
     assert {entry[0] for entry in hashlist} == {"sub/file.txt"}
+
+
+def test_get_hashlist_zipfile_raises_for_corrupt_archive(tmp_path: Path) -> None:
+    zip_path = tmp_path / "corrupt.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("a.txt", "hello world")
+
+    # Corrupt the stored payload in place, leaving the CRC-32 in the local
+    # header untouched, so reading the entry fails its integrity check.
+    raw = bytearray(zip_path.read_bytes())
+    offset = raw.find(b"hello world")
+    raw[offset : offset + 5] = b"XXXXX"
+    zip_path.write_bytes(raw)
+
+    with pytest.raises(ValueError, match="corrupt zip archive"):
+        FileCompare(str(zip_path)).get_hashlist()
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +201,96 @@ def test_compare_with_prefix_strips_zip_root(tmp_path: Path) -> None:
     assert result.modified == {"wp-config-sample.php"}
     assert not result.removed
     assert not result.moved
+
+
+def test_compare_with_prefix_on_both_sides_in_folder_mode(tmp_path: Path) -> None:
+    extracted = tmp_path / "extracted"
+    write(extracted / "wordpress" / "index.php", "index")
+    write(extracted / "wordpress" / "wp-config-sample.php", "config")
+
+    live = tmp_path / "live"
+    write(live / "index.php", "index")
+    write(live / "wp-config-sample.php", "hacked")
+    write(live / "webshell.php", "evil")
+
+    result = FileCompare(str(extracted), prefix="wordpress/").compare(
+        FileCompare(str(live), prefix="wordpress/"),
+    )
+
+    assert result.added == {"webshell.php"}
+    assert result.modified == {"wp-config-sample.php"}
+    assert not result.removed
+    assert not result.moved
+
+
+def test_compare_detects_multiple_independent_moves(tmp_path: Path) -> None:
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+
+    write(src / "old1.txt", "content one")
+    write(dst / "new1.txt", "content one")
+
+    write(src / "old2.txt", "content two")
+    write(dst / "new2.txt", "content two")
+
+    result = FileCompare(str(src)).compare(FileCompare(str(dst)))
+
+    assert set(result.moved) == {("old1.txt", "new1.txt"), ("old2.txt", "new2.txt")}
+    assert not result.added
+    assert not result.removed
+
+
+def test_compare_both_empty_directories(tmp_path: Path) -> None:
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+    src.mkdir()
+    dst.mkdir()
+
+    result = FileCompare(str(src)).compare(FileCompare(str(dst)))
+
+    assert bool(result) is True
+
+
+def test_compare_duplicate_removed_content_keeps_surplus_as_removed(
+    tmp_path: Path,
+) -> None:
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+
+    write(src / "a.txt", "duplicate content")
+    write(src / "b.txt", "duplicate content")
+    write(dst / "c.txt", "duplicate content")
+
+    result = FileCompare(str(src)).compare(FileCompare(str(dst)))
+
+    # a.txt and b.txt have identical content: exactly one of them is paired
+    # as "moved" to c.txt, the other must still be reported as removed -
+    # neither file may be silently dropped from the result.
+    assert len(result.moved) == 1
+    moved_sources = {source for source, _ in result.moved}
+    assert moved_sources | result.removed == {"a.txt", "b.txt"}
+    assert not result.added
+
+
+def test_compare_duplicate_added_content_keeps_surplus_as_added(
+    tmp_path: Path,
+) -> None:
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+
+    write(src / "x.txt", "duplicate content")
+    write(dst / "y.txt", "duplicate content")
+    write(dst / "z.txt", "duplicate content")
+
+    result = FileCompare(str(src)).compare(FileCompare(str(dst)))
+
+    # y.txt and z.txt have identical content: exactly one of them is paired
+    # as "moved" from x.txt, the other must still be reported as added -
+    # neither file may be silently dropped from the result.
+    assert len(result.moved) == 1
+    moved_destinations = {destination for _, destination in result.moved}
+    assert moved_destinations | result.added == {"y.txt", "z.txt"}
+    assert not result.removed
 
 
 # ---------------------------------------------------------------------------

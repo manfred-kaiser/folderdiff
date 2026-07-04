@@ -6,6 +6,8 @@ archives based on file hashes.
 
 import hashlib
 import os
+import sys
+from collections import defaultdict
 from pathlib import Path
 from zipfile import ZipFile, is_zipfile
 
@@ -19,6 +21,49 @@ def sha256sum(filename: str) -> str:
         for chunk in iter(lambda: f.read(65536), b""):
             hash_sha256.update(chunk)
     return hash_sha256.hexdigest()
+
+
+def _group_by_hash(entries: HashList) -> dict[str, list[str]]:
+    """Group hash-list entries by digest, preserving duplicate paths."""
+    grouped: dict[str, list[str]] = defaultdict(list)
+    for path, digest in entries:
+        grouped[digest].append(path)
+    return grouped
+
+
+def _pair_by_hash(
+    removed_by_hash: dict[str, list[str]],
+    added_by_hash: dict[str, list[str]],
+) -> tuple[list[tuple[str, str]], set[str], set[str]]:
+    """Pair up removed/added paths that share a hash as moves.
+
+    Files with duplicate content may appear multiple times under the same
+    hash; only as many pairs as the smaller side allows are reported as
+    moved, and the surplus stays classified as removed/added so that no
+    entry is silently dropped.
+    """
+    moved: list[tuple[str, str]] = []
+    removed: set[str] = set()
+    added: set[str] = set()
+
+    for digest, removed_paths in removed_by_hash.items():
+        matched_added_paths = added_by_hash.get(digest, [])
+        pair_count = min(len(removed_paths), len(matched_added_paths))
+        moved.extend(
+            zip(
+                removed_paths[:pair_count],
+                matched_added_paths[:pair_count],
+                strict=True,
+            ),
+        )
+        removed.update(removed_paths[pair_count:])
+
+    for digest, added_paths in added_by_hash.items():
+        matched_removed_paths = removed_by_hash.get(digest, [])
+        pair_count = min(len(matched_removed_paths), len(added_paths))
+        added.update(added_paths[pair_count:])
+
+    return moved, removed, added
 
 
 class FileCompareResult:
@@ -89,17 +134,30 @@ class FileCompare:
         for directory, _, files in os.walk(self.path):
             for f in files:
                 path = str(Path(directory) / f)
-                filepath = self.path
-                if self.prefix and path.startswith(self.prefix.rstrip(os.sep) + os.sep):
-                    filepath = str(Path(self.path) / self.prefix)
-                hashlist.add((os.path.relpath(path, filepath), sha256sum(path)))
+                relative_path = os.path.relpath(path, self.path)
+                if self.prefix and relative_path.startswith(
+                    self.prefix.rstrip(os.sep) + os.sep,
+                ):
+                    relative_path = relative_path[len(self.prefix.rstrip(os.sep)) + 1 :]
+                try:
+                    digest = sha256sum(path)
+                except OSError as exc:
+                    print(
+                        f"warning: skipping unreadable file {path}: {exc}",
+                        file=sys.stderr,
+                    )
+                    continue
+                hashlist.add((relative_path, digest))
         return hashlist
 
     def get_hashlist_zipfile(self) -> HashList:
         """Return the hash list for all files in a zip archive."""
         hashlist: HashList = set()
         with ZipFile(self.path) as zfile:
-            zfile.testzip()
+            bad_file = zfile.testzip()
+            if bad_file is not None:
+                msg = f"corrupt zip archive: bad CRC-32 for {bad_file}"
+                raise ValueError(msg)
             for fileentry in zfile.namelist():
                 if fileentry.endswith("/"):
                     continue
@@ -118,17 +176,10 @@ class FileCompare:
         hash_set_src = self.get_hashlist()
         hash_set_dest = to_compare.get_hashlist()
 
-        hash_set_added = hash_set_dest - hash_set_src
-        hash_set_removed = hash_set_src - hash_set_dest
+        removed_by_hash = _group_by_hash(hash_set_src - hash_set_dest)
+        added_by_hash = _group_by_hash(hash_set_dest - hash_set_src)
 
-        hash_dict_added = {entry[1]: entry[0] for entry in hash_set_added}
-        hash_dict_removed = {entry[1]: entry[0] for entry in hash_set_removed}
-
-        moved_keys = set(hash_dict_added.keys()) & set(hash_dict_removed.keys())
-
-        added = {e[0] for e in hash_set_added if e[1] not in moved_keys}
-        moved = [(hash_dict_removed[key], hash_dict_added[key]) for key in moved_keys]
-        removed = {e[0] for e in hash_set_removed if e[1] not in moved_keys}
+        moved, removed, added = _pair_by_hash(removed_by_hash, added_by_hash)
 
         modified = added & removed
         added = added - modified

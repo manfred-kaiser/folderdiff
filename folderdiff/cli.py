@@ -18,7 +18,7 @@ def main() -> None:
     parser.add_argument(
         "--prefix",
         dest="prefix",
-        help="remove the profix from the source or destination folder",
+        help="remove the prefix from the source or destination folder",
     )
 
     args = parser.parse_args()
@@ -26,7 +26,12 @@ def main() -> None:
     hashlist_src = FileCompare(args.directories[0], args.prefix)
     hashlist_dest = FileCompare(args.directories[1], args.prefix)
 
-    result = hashlist_src.compare(hashlist_dest)
+    try:
+        result = hashlist_src.compare(hashlist_dest)
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(2)
+
     result.print_result()
 
     if not result:

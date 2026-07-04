@@ -19,7 +19,7 @@ positional arguments:
 
 options:
   -h, --help       show this help message and exit
-  --prefix PREFIX  remove the profix from the source and/or destination folder
+  --prefix PREFIX  remove the prefix from the source and/or destination folder
 ```
 
 ## Sample output
@@ -31,3 +31,10 @@ folderdiff wordpress-6.0.3-de_AT.zip /var/www/ --prefix wordpress/
 ==================== Modified ====================
 * index.php
 ```
+
+## Limitations
+
+- Files that cannot be read (broken symlinks, missing permissions) are skipped
+  with a warning on stderr instead of aborting the whole comparison.
+- Symlinked directories are not followed, so their contents are not included
+  in the comparison.

@@ -43,6 +43,39 @@ def test_main_exits_one_and_prints_differences(
     assert "+ webshell.php" in capsys.readouterr().out
 
 
+def test_main_requires_two_directory_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["folderdiff", "only-one-argument"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 2
+    assert "usage" in capsys.readouterr().err.lower()
+
+
+def test_main_prints_clean_error_for_unsupported_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    missing = tmp_path / "does-not-exist"
+    other = tmp_path / "dst"
+    write(other / "a.txt", "hello")
+
+    monkeypatch.setattr(sys, "argv", ["folderdiff", str(missing), str(other)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 2
+    err = capsys.readouterr().err
+    assert "error:" in err
+    assert "Traceback" not in err
+
+
 def test_main_prefix_option_strips_zip_root(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
