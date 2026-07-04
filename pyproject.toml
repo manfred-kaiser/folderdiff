@@ -7,7 +7,7 @@ name = "folderdiff"
 dynamic = ["version"]
 description = "FolderDiff is a tool to compare unzipped archives (e.g. Wordpress installations) with their original zip archive or a clean source folder."
 readme = "README.md"
-license = "GPL-3.0-or-later"
+license = "MIT"
 requires-python = ">=3.11"
 authors = [
     { name = "Manfred Kaiser", email = "manfred.kaiser@ssh-mitm.at" }

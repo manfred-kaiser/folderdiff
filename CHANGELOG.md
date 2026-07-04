@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raised minimum supported Python version to 3.11 (developed and tested with 3.13)
 - Added a restrictive lint environment (black, bandit, ruff, flake8, pylint, mypy --strict) via `hatch run lint:check`
 - Added GitHub Actions workflows for linting across supported Python versions and for publishing to PyPI via Trusted Publishing
+- Relicensed from GPL-3.0-or-later to MIT
 
 ## [0.0.2] - 2023-03-06
 
