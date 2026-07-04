@@ -62,6 +62,9 @@ check = [
     "mypy folderdiff",
 ]
 
+[[tool.hatch.envs.lint.matrix]]
+python = ["3.11", "3.12", "3.13"]
+
 [tool.flake8]
 ignore = ["E203", "E501", "W503"]
 
