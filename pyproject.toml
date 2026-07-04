@@ -40,6 +40,15 @@ path = "folderdiff/__version__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["folderdiff"]
 
+[tool.hatch.envs.hatch-test]
+dependencies = ["pytest"]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "pytest{env:HATCH_TEST_ARGS:} {args:tests/}"
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.11", "3.12", "3.13"]
+
 [tool.hatch.envs.lint]
 detached = false
 dependencies = [
@@ -49,11 +58,13 @@ dependencies = [
     "flake8",
     "mypy",
     "pylint",
+    "pytest",
     "ruff",
 ]
 
 [tool.hatch.envs.lint.scripts]
 check = [
+    "pytest",
     "black --check folderdiff",
     "bandit -r folderdiff",
     "ruff check folderdiff",
@@ -64,6 +75,9 @@ check = [
 
 [[tool.hatch.envs.lint.matrix]]
 python = ["3.11", "3.12", "3.13"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.flake8]
 ignore = ["E203", "E501", "W503"]
