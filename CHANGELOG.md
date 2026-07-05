@@ -58,6 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 initial release
 
 
-[Unreleased]: https://github.com/ssh-mitm/folderdiff/compare/0.0.2...main
-[0.0.2]: https://github.com/ssh-mitm/folderdiff/compare/0.0.1...0.0.2
-[0.0.1]: https://github.com/ssh-mitm/folderdiff/releases/tag/0.0.1
+[Unreleased]: https://github.com/manfred-kaiser/folderdiff/compare/0.0.2...main
+[0.0.2]: https://github.com/manfred-kaiser/folderdiff/compare/0.0.1...0.0.2
+[0.0.1]: https://github.com/manfred-kaiser/folderdiff/releases/tag/0.0.1

@@ -27,9 +27,9 @@ classifiers = [
 ]
 
 [project.urls]
-Changelog = "https://github.com/ssh-mitm/folderdiff/blob/main/CHANGELOG.md"
-Source = "https://github.com/ssh-mitm/folderdiff"
-Tracker = "https://github.com/ssh-mitm/folderdiff/issues"
+Changelog = "https://github.com/manfred-kaiser/folderdiff/blob/main/CHANGELOG.md"
+Source = "https://github.com/manfred-kaiser/folderdiff"
+Tracker = "https://github.com/manfred-kaiser/folderdiff/issues"
 
 [project.scripts]
 folderdiff = "folderdiff.cli:main"
@@ -110,9 +110,9 @@ filename = "folderdiff/__version__.py"
 
 [[tool.bumpversion.files]]
 filename = "CHANGELOG.md"
-search = "[Unreleased]: https://github.com/ssh-mitm/folderdiff/compare/{current_version}...main"
-replace = """[Unreleased]: https://github.com/ssh-mitm/folderdiff/compare/{new_version}...main
-[{new_version}]: https://github.com/ssh-mitm/folderdiff/compare/{current_version}...{new_version}"""
+search = "[Unreleased]: https://github.com/manfred-kaiser/folderdiff/compare/{current_version}...main"
+replace = """[Unreleased]: https://github.com/manfred-kaiser/folderdiff/compare/{new_version}...main
+[{new_version}]: https://github.com/manfred-kaiser/folderdiff/compare/{current_version}...{new_version}"""
 
 [[tool.bumpversion.files]]
 filename = "CHANGELOG.md"
