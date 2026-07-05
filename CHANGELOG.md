@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A corrupt zip archive's CRC-32 self-test result was computed but never
   checked, so a bad archive still crashed later with an unhandled exception
 - Fixed "profix" typo in the `--prefix` help text
+- Folder-mode relative paths used `os.sep` while zip entries always use `/`,
+  so comparing a zip archive against a directory would report every file in
+  a subfolder as changed on platforms where `os.sep != "/"`
+- A named pipe or other special file in the compared directory tree caused
+  `open()` to block indefinitely, hanging the whole comparison; such entries
+  are now skipped with a warning instead
+- Zip archive members were read fully into memory before hashing, which
+  could exhaust memory on a maliciously crafted archive; hashing is now
+  streamed in fixed-size chunks
 
 ## [0.0.2] - 2023-03-06
 
