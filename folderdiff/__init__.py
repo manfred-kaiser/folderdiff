@@ -172,7 +172,9 @@ class FileCompare:
                 if fileentry.endswith("/"):
                     continue
                 hashfunc = hashlib.sha256()
-                hashfunc.update(zfile.read(fileentry))
+                with zfile.open(fileentry) as member:
+                    while chunk := member.read(65536):
+                        hashfunc.update(chunk)
                 filepath = _strip_prefix(fileentry, self.prefix)
                 hashlist.add((filepath, hashfunc.hexdigest()))
         return hashlist

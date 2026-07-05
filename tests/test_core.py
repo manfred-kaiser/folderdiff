@@ -138,6 +138,22 @@ def test_get_hashlist_zipfile_ignores_directory_entries(tmp_path: Path) -> None:
     assert {entry[0] for entry in hashlist} == {"sub/file.txt"}
 
 
+def test_get_hashlist_zipfile_hashes_multi_chunk_entry_correctly(
+    tmp_path: Path,
+) -> None:
+    # Exercises the streaming read path (chunk size is 64 KiB) instead of a
+    # single zfile.read() call, to guard against reintroducing a full read
+    # of large archive members into memory.
+    payload = os.urandom(3 * 65536 + 1000)
+    zip_path = tmp_path / "large.zip"
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("big.bin", payload)
+
+    hashlist = FileCompare(str(zip_path)).get_hashlist()
+
+    assert dict(hashlist)["big.bin"] == hashlib.sha256(payload).hexdigest()
+
+
 def test_get_hashlist_zipfile_raises_for_corrupt_archive(tmp_path: Path) -> None:
     zip_path = tmp_path / "corrupt.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
