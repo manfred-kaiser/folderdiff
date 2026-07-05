@@ -23,6 +23,13 @@ def sha256sum(filename: str) -> str:
     return hash_sha256.hexdigest()
 
 
+def _strip_prefix(relative_path: str, prefix: str | None) -> str:
+    """Remove a leading "/"-separated path segment, if present."""
+    if prefix and relative_path.startswith(prefix.rstrip("/") + "/"):
+        return relative_path[len(prefix.rstrip("/")) + 1 :]
+    return relative_path
+
+
 def _group_by_hash(entries: HashList) -> dict[str, list[str]]:
     """Group hash-list entries by digest, preserving duplicate paths."""
     grouped: dict[str, list[str]] = defaultdict(list)
@@ -134,11 +141,8 @@ class FileCompare:
         for directory, _, files in os.walk(self.path):
             for f in files:
                 path = str(Path(directory) / f)
-                relative_path = os.path.relpath(path, self.path)
-                if self.prefix and relative_path.startswith(
-                    self.prefix.rstrip(os.sep) + os.sep,
-                ):
-                    relative_path = relative_path[len(self.prefix.rstrip(os.sep)) + 1 :]
+                relative_path = os.path.relpath(path, self.path).replace(os.sep, "/")
+                relative_path = _strip_prefix(relative_path, self.prefix)
                 try:
                     digest = sha256sum(path)
                 except OSError as exc:
@@ -163,11 +167,7 @@ class FileCompare:
                     continue
                 hashfunc = hashlib.sha256()
                 hashfunc.update(zfile.read(fileentry))
-                filepath = fileentry
-                if self.prefix and fileentry.startswith(
-                    self.prefix.rstrip(os.sep) + os.sep,
-                ):
-                    filepath = filepath[len(self.prefix.rstrip(os.sep)) + 1 :]
+                filepath = _strip_prefix(fileentry, self.prefix)
                 hashlist.add((filepath, hashfunc.hexdigest()))
         return hashlist
 

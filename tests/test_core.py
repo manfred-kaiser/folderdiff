@@ -32,8 +32,11 @@ def test_get_hashlist_folder(tmp_path: Path) -> None:
 
     hashlist = FileCompare(str(tmp_path)).get_hashlist()
 
+    # Relative paths always use "/", regardless of os.sep, so that folder-mode
+    # and zip-mode hash lists (zip entries are always "/"-separated) compare
+    # equal across platforms.
     names = {entry[0] for entry in hashlist}
-    assert names == {"a.txt", str(Path("sub") / "b.txt")}
+    assert names == {"a.txt", "sub/b.txt"}
 
 
 def test_get_hashlist_raises_for_unsupported_path(tmp_path: Path) -> None:
@@ -49,7 +52,7 @@ def test_get_hashlist_folder_strips_prefix(tmp_path: Path) -> None:
     hashlist = FileCompare(str(tmp_path), prefix="wordpress/").get_hashlist()
 
     names = {entry[0] for entry in hashlist}
-    assert names == {"index.php", str(Path("sub") / "b.txt")}
+    assert names == {"index.php", "sub/b.txt"}
 
 
 def test_get_hashlist_folder_prefix_is_noop_when_not_nested(tmp_path: Path) -> None:
