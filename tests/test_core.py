@@ -1,6 +1,7 @@
 """Unit tests for the folderdiff core module."""
 
 import hashlib
+import os
 import zipfile
 from pathlib import Path
 
@@ -92,6 +93,21 @@ def test_get_hashlist_folder_skips_unreadable_file_with_warning(
 
     assert {entry[0] for entry in hashlist} == {"a.txt"}
     assert "locked.txt" in capsys.readouterr().err
+
+
+def test_get_hashlist_folder_skips_non_regular_file_with_warning(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    write(tmp_path / "a.txt", "hello")
+    os.mkfifo(tmp_path / "pipe.fifo")
+
+    # A FIFO blocks on open() until a writer connects; if it were not
+    # filtered out before hashing, this call would hang forever.
+    hashlist = FileCompare(str(tmp_path)).get_hashlist()
+
+    assert {entry[0] for entry in hashlist} == {"a.txt"}
+    assert "pipe.fifo" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------

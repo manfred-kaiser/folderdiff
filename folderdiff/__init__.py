@@ -143,6 +143,12 @@ class FileCompare:
                 path = str(Path(directory) / f)
                 relative_path = os.path.relpath(path, self.path).replace(os.sep, "/")
                 relative_path = _strip_prefix(relative_path, self.prefix)
+                if not Path(path).is_file():
+                    print(
+                        f"warning: skipping non-regular file {path}",
+                        file=sys.stderr,
+                    )
+                    continue
                 try:
                     digest = sha256sum(path)
                 except OSError as exc:
