@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-05
+
 ### Added
 
 - Support for comparing tar archives (`.tar`, `.tar.gz`, `.tar.bz2`, `.tar.xz`)
@@ -58,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 initial release
 
 
-[Unreleased]: https://github.com/manfred-kaiser/folderdiff/compare/0.0.2...main
+[Unreleased]: https://github.com/manfred-kaiser/folderdiff/compare/1.0.0...main
+[1.0.0]: https://github.com/manfred-kaiser/folderdiff/compare/0.0.2...1.0.0
 [0.0.2]: https://github.com/manfred-kaiser/folderdiff/compare/0.0.1...0.0.2
 [0.0.1]: https://github.com/manfred-kaiser/folderdiff/releases/tag/0.0.1

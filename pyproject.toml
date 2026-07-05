@@ -103,7 +103,7 @@ ignore = [
 target-version = ["py311"]
 
 [tool.bumpversion]
-current_version = "0.0.2"
+current_version = "1.0.0"
 
 [[tool.bumpversion.files]]
 filename = "folderdiff/__version__.py"
