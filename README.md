@@ -2,7 +2,8 @@
 
 
 FolderDiff can be used to compare unzipped archives (e.g. Wordpress installations)
-with their original zip archive or a clean source folder. 
+with their original zip or tar archive (.zip, .tar, .tar.gz, .tar.bz2, .tar.xz)
+or a clean source folder.
 
 As a result the found changes (added, deleted, moved and changed) are displayed.
 
@@ -38,3 +39,7 @@ folderdiff wordpress-6.0.3-de_AT.zip /var/www/ --prefix wordpress/
   with a warning on stderr instead of aborting the whole comparison.
 - Symlinked directories are not followed, so their contents are not included
   in the comparison.
+- Password-protected zip archives are not supported.
+- Unlike zip archives, tar archives have no per-file checksum. A corrupted
+  tar member may in rare cases be silently dropped from the comparison
+  instead of being reported as an error.

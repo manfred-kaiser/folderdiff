@@ -1,12 +1,13 @@
 """folderdiff core module.
 
-Provides utilities to compare the contents of directories and/or zip
+Provides utilities to compare the contents of directories and/or zip/tar
 archives based on file hashes.
 """
 
 import hashlib
 import os
 import sys
+import tarfile
 from collections import defaultdict
 from pathlib import Path
 from zipfile import ZipFile, is_zipfile
@@ -117,7 +118,7 @@ class FileCompareResult:
 
 
 class FileCompare:
-    """Compute and compare file hash lists of a directory or zip archive."""
+    """Compute and compare file hash lists of a directory or zip/tar archive."""
 
     __hash__ = None  # type: ignore[assignment]
 
@@ -130,9 +131,15 @@ class FileCompare:
         """Return the hash list for the configured path."""
         if Path(self.path).is_dir():
             return self.get_hashlist_folder()
-        if Path(self.path).is_file() and is_zipfile(self.path):
-            return self.get_hashlist_zipfile()
-        msg = "not supported filetype - only zip files and dirctories are supported!"
+        if Path(self.path).is_file():
+            if is_zipfile(self.path):
+                return self.get_hashlist_zipfile()
+            if tarfile.is_tarfile(self.path):
+                return self.get_hashlist_tarfile()
+        msg = (
+            "not supported filetype - only zip/tar archives and directories "
+            "are supported!"
+        )
         raise ValueError(msg)
 
     def get_hashlist_folder(self) -> HashList:
@@ -177,6 +184,32 @@ class FileCompare:
                         hashfunc.update(chunk)
                 filepath = _strip_prefix(fileentry, self.prefix)
                 hashlist.add((filepath, hashfunc.hexdigest()))
+        return hashlist
+
+    def get_hashlist_tarfile(self) -> HashList:
+        """Return the hash list for all files in a tar archive.
+
+        Handles plain tar as well as gzip/bzip2/xz-compressed tar archives
+        (.tar, .tar.gz, .tar.bz2, .tar.xz), auto-detected by tarfile.
+        """
+        hashlist: HashList = set()
+        try:
+            with tarfile.open(self.path) as tar:
+                for member in tar.getmembers():
+                    if not member.isfile():
+                        continue
+                    stream = tar.extractfile(member)
+                    if stream is None:
+                        continue
+                    hashfunc = hashlib.sha256()
+                    with stream:
+                        while chunk := stream.read(65536):
+                            hashfunc.update(chunk)
+                    filepath = _strip_prefix(member.name, self.prefix)
+                    hashlist.add((filepath, hashfunc.hexdigest()))
+        except tarfile.TarError as exc:
+            msg = f"corrupt tar archive: {exc}"
+            raise ValueError(msg) from exc
         return hashlist
 
     def compare(self, to_compare: "FileCompare") -> FileCompareResult:

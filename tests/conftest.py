@@ -1,5 +1,6 @@
 """Shared test helpers for the folderdiff test suite."""
 
+import tarfile
 import zipfile
 from pathlib import Path
 
@@ -16,3 +17,11 @@ def make_zip(zip_path: Path, source: Path) -> None:
         for file in source.rglob("*"):
             if file.is_file():
                 zf.write(file, file.relative_to(source))
+
+
+def make_tar(tar_path: Path, source: Path, mode: str = "w") -> None:
+    """Create a tar archive (optionally compressed) containing source's files."""
+    with tarfile.open(tar_path, mode) as tf:
+        for file in source.rglob("*"):
+            if file.is_file():
+                tf.add(file, file.relative_to(source))

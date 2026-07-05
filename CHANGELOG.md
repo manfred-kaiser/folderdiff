@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Support for comparing tar archives (`.tar`, `.tar.gz`, `.tar.bz2`, `.tar.xz`)
+  in addition to zip archives and plain directories
 - Unit test suite (pytest) covering the core comparison logic and the CLI
 - `hatch test` / pytest integration in `hatch run lint:check`
 

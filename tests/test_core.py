@@ -1,12 +1,14 @@
 """Unit tests for the folderdiff core module."""
 
 import hashlib
+import io
 import os
+import tarfile
 import zipfile
 from pathlib import Path
 
 import pytest
-from conftest import make_zip, write
+from conftest import make_tar, make_zip, write
 
 from folderdiff import FileCompare, FileCompareResult, sha256sum
 
@@ -168,6 +170,77 @@ def test_get_hashlist_zipfile_raises_for_corrupt_archive(tmp_path: Path) -> None
 
     with pytest.raises(ValueError, match="corrupt zip archive"):
         FileCompare(str(zip_path)).get_hashlist()
+
+
+# ---------------------------------------------------------------------------
+# FileCompare.get_hashlist - tar archives
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("mode", ["w", "w:gz", "w:bz2", "w:xz"])
+def test_get_hashlist_tarfile_matches_folder(tmp_path: Path, mode: str) -> None:
+    source = tmp_path / "source"
+    write(source / "a.txt", "hello")
+    write(source / "sub" / "b.txt", "world")
+
+    tar_path = tmp_path / "source.tar"
+    make_tar(tar_path, source, mode)
+
+    tar_hashlist = FileCompare(str(tar_path)).get_hashlist()
+    folder_hashlist = FileCompare(str(source)).get_hashlist()
+    assert tar_hashlist == folder_hashlist
+
+
+def test_get_hashlist_tarfile_ignores_directories_and_symlinks(
+    tmp_path: Path,
+) -> None:
+    tar_path = tmp_path / "with_special_entries.tar"
+    with tarfile.open(tar_path, "w") as tf:
+        data = b"content"
+        info = tarfile.TarInfo(name="file.txt")
+        info.size = len(data)
+        tf.addfile(info, io.BytesIO(data))
+
+        dir_info = tarfile.TarInfo(name="subdir")
+        dir_info.type = tarfile.DIRTYPE
+        tf.addfile(dir_info)
+
+        link_info = tarfile.TarInfo(name="link.txt")
+        link_info.type = tarfile.SYMTYPE
+        link_info.linkname = "file.txt"
+        tf.addfile(link_info)
+
+    hashlist = FileCompare(str(tar_path)).get_hashlist()
+    assert {entry[0] for entry in hashlist} == {"file.txt"}
+
+
+def test_get_hashlist_tarfile_strips_prefix(tmp_path: Path) -> None:
+    source = tmp_path / "wordpress"
+    write(source / "index.php", "index")
+    write(source / "sub" / "b.txt", "world")
+
+    tar_path = tmp_path / "wordpress.tar.gz"
+    make_tar(tar_path, source.parent, "w:gz")
+
+    hashlist = FileCompare(str(tar_path), prefix="wordpress/").get_hashlist()
+
+    names = {entry[0] for entry in hashlist}
+    assert names == {"index.php", "sub/b.txt"}
+
+
+def test_get_hashlist_tarfile_raises_for_corrupt_archive(tmp_path: Path) -> None:
+    tar_path = tmp_path / "corrupt.tar"
+    with tarfile.open(tar_path, "w") as tf:
+        data = b"x" * 100
+        info = tarfile.TarInfo(name="a.txt")
+        info.size = len(data)
+        tf.addfile(info, io.BytesIO(data))
+
+    # Truncate mid-payload so the declared member size can't be satisfied.
+    tar_path.write_bytes(tar_path.read_bytes()[: 512 + 50])
+
+    with pytest.raises(ValueError, match="corrupt tar archive"):
+        FileCompare(str(tar_path)).get_hashlist()
 
 
 # ---------------------------------------------------------------------------
